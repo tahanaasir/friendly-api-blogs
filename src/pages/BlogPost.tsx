@@ -3,34 +3,54 @@ import { useParams, Link } from "react-router-dom";
 import { Calendar, User, ArrowLeft, Share2, Heart, MessageCircle } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { blogPosts } from "@/data/blogPosts";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import ErrorMessage from "@/components/ErrorMessage";
 import { Button } from "@/components/ui/button";
 import BlogCard from "@/components/BlogCard";
+import { useBlogPost, useBlogPosts } from "@/hooks/useBlogData";
 
 const BlogPost = () => {
-  const { id } = useParams();
-  const post = blogPosts.find(p => p.id === id);
+  const { id } = useParams<{ id: string }>();
   
-  if (!post) {
+  const { data: post, isLoading, error, refetch } = useBlogPost(id || "");
+  const { data: allPosts = [] } = useBlogPosts();
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navigation />
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Post Not Found</h1>
-          <p className="text-gray-600 mb-8">The blog post you're looking for doesn't exist.</p>
-          <Link to="/">
-            <Button>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
+        <div className="max-w-4xl mx-auto px-4 py-20">
+          <LoadingSpinner size="lg" />
         </div>
         <Footer />
       </div>
     );
   }
 
-  const relatedPosts = blogPosts
+  if (error || !post) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        <div className="max-w-4xl mx-auto px-4 py-20">
+          <ErrorMessage 
+            message={post === null ? "Blog post not found." : "Failed to load blog post."}
+            onRetry={() => refetch()}
+          />
+          <div className="text-center mt-8">
+            <Link to="/">
+              <Button>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const relatedPosts = allPosts
     .filter(p => p.id !== id && p.category === post.category)
     .slice(0, 3);
 
